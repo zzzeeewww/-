@@ -1,0 +1,91 @@
+#include<opencv2\opencv.hpp>
+#include<iostream>
+#include<quickopencv.h>
+
+  
+
+using namespace cv;
+using namespace std;
+  
+
+
+
+int main(int arg,char** argv)
+{
+	Mat src = imread("D:\\open\\opencv\\sources\\samples\\wp8\\OpenCVXaml\\OpenCVXaml\\Assets\\Lena.png");                            
+	imshow("input", src);
+		//椒盐噪声的形成
+	RNG rng(12345);
+	int h = src.rows;
+	int w = src.cols;
+	int nums = 10000;
+	for (int i = 0; i < nums; i++)
+	{
+		int x = rng.uniform(0, w);
+		int y = rng.uniform(0, h);
+		if (i % 2 == 1)
+		{
+			src.at<Vec3b>(y, x) = Vec3b(255, 255, 255);
+		}
+		else
+		{
+			src.at<Vec3b>(y, x) = Vec3b(0, 0, 0);
+		}
+	}
+    //api函数实现中值滤波
+	Mat dst;
+	imshow("椒盐噪声图图片", src);
+	medianBlur(src, dst, 5);
+	imshow("api 函数实现中值滤波", dst);
+    //自定义实现中值滤波
+	std::vector<Mat>mv;
+	split(src, mv);
+	Mat result = src.clone();
+	int ksize = 3;
+	int num = ksize * ksize;
+	std::vector<uchar>p(num);
+	int delta[3 * 3][2] = {
+		{-1,-1},{-1,0},{-1,1},{0,-1},{0,0},{0,1},{1,-1},{1,0},{1,1}
+	};
+	for (int i = 1; i < src.rows - 1; ++i)
+	{
+		for (int j = 1; j < src.cols-1; ++j)
+		{
+			for (int k = 0; k < num; ++k)
+			{
+				p[k] = mv[0].at<uchar>(i + delta[k][0], j + delta[k][1]);
+			}
+			std::sort(p.begin(), p.end());
+			mv[0].at<uchar>(i, j) = p[num / 2];
+		}
+	}
+	for (int i = 1; i < src.rows - 1; ++i)
+	{
+		for (int j = 1; j < src.cols - 1; ++j)
+		{
+			for (int k = 0; k < num; ++k)
+			{
+				p[k] = mv[1].at<uchar>(i + delta[k][0], j + delta[k][1]);
+			}
+			std::sort(p.begin(), p.end());
+			mv[1].at<uchar>(i, j) = p[num / 2];
+		}
+	}
+	for (int i = 1; i < src.rows - 1; ++i)
+	{
+		for (int j = 1; j < src.cols - 1; ++j)
+		{
+			for (int k = 0; k < num; ++k)
+			{
+				p[k] = mv[2].at<uchar>(i + delta[k][0], j + delta[k][1]);
+			}
+			std::sort(p.begin(), p.end());
+			mv[2].at<uchar>(i, j) = p[num / 2];
+		}
+	}
+	merge(mv, result);
+	imshow("自定义中值滤波实现图片", result);	
+		waitKey(0);
+	destroyAllWindows();
+	return 0;
+}
